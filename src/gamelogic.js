@@ -7,15 +7,17 @@ const maxPaddleY = canvas.height - grid - paddleHeight;
 var paddleSpeed = 6;
 var ballSpeed = 5;
 
+// Initialize player scores
+let leftPlayerScore = 0;
+let rightPlayerScore = 0;
+
 const leftPaddle = {
     // start in the middle of the game on the left side
     x: grid * 2,
     y: canvas.height / 2 - paddleHeight / 2,
     width: grid,
     height: paddleHeight,
-
-    // paddle velocity
-    dy: 0
+    dy: 0 // paddle velocity
 };
 const rightPaddle = {
     // start in the middle of the game on the right side
@@ -23,27 +25,18 @@ const rightPaddle = {
     y: canvas.height / 2 - paddleHeight / 2,
     width: grid,
     height: paddleHeight,
-
-    // paddle velocity
-    dy: 0
+    dy: 0 // paddle velocity
 };
 const ball = {
-    // start in the middle of the game
     x: canvas.width / 2,
     y: canvas.height / 2,
     width: grid,
     height: grid,
-
-    // keep track of when need to reset the ball position
     resetting: false,
-
-    // ball velocity (start going to the top-right corner)
     dx: ballSpeed,
     dy: -ballSpeed
 };
 
-// check for collision between two objects using axis-aligned bounding box (AABB)
-// @see https://developer.mozilla.org/en-US/docs/Games/Techniques/2D_collision_detection
 function collides(obj1, obj2) {
     return obj1.x < obj2.x + obj2.width &&
         obj1.x + obj1.width > obj2.x &&
@@ -51,123 +44,179 @@ function collides(obj1, obj2) {
         obj1.y + obj1.height > obj2.y;
 }
 
-// game loop
+// Main game loop
 function loop() {
     requestAnimationFrame(loop);
-    context.clearRect(0,0,canvas.width,canvas.height);
+    context.clearRect(0, 0, canvas.width, canvas.height);
 
-    // move paddles by their velocity
+    // Move paddles by their velocity
     leftPaddle.y += leftPaddle.dy;
     rightPaddle.y += rightPaddle.dy;
 
-    // prevent paddles from going through walls
-    if (leftPaddle.y < grid) {
-        leftPaddle.y = grid;
-    }
-    else if (leftPaddle.y > maxPaddleY) {
-        leftPaddle.y = maxPaddleY;
-    }
+    // Prevent paddles from going through walls
+    leftPaddle.y = Math.max(grid, Math.min(maxPaddleY, leftPaddle.y));
+    rightPaddle.y = Math.max(grid, Math.min(maxPaddleY, rightPaddle.y));
 
-    if (rightPaddle.y < grid) {
-        rightPaddle.y = grid;
-    }
-    else if (rightPaddle.y > maxPaddleY) {
-        rightPaddle.y = maxPaddleY;
-    }
-
-    // draw paddles
+    // Draw paddles
     context.fillStyle = 'white';
     context.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
     context.fillRect(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height);
 
-    // move ball by its velocity
+    // Move ball by its velocity
     ball.x += ball.dx;
     ball.y += ball.dy;
 
-    // prevent ball from going through walls by changing its velocity
-    if (ball.y < grid) {
-        ball.y = grid;
+    // Ball collision with top/bottom walls
+    if (ball.y < grid || ball.y + grid > canvas.height - grid) {
         ball.dy *= -1;
-    }
-    else if (ball.y + grid > canvas.height - grid) {
-        ball.y = canvas.height - grid * 2;
-        ball.dy *= -1;
+        ball.y = Math.max(grid, Math.min(canvas.height - grid - ball.height, ball.y));
     }
 
-    // reset ball if it goes past paddle (but only if we haven't already done so)
-    if ( (ball.x < 0 || ball.x > canvas.width) && !ball.resetting) {
+    // Reset ball and update scores when it goes past the paddles
+    if (ball.x < 0 && !ball.resetting) {
         ball.resetting = true;
-
-        // give some time for the player to recover before launching the ball again
-        setTimeout(() => {
-            ball.resetting = false;
-            ball.x = canvas.width / 2;
-            ball.y = canvas.height / 2;
-        }, 400);
+        rightPlayerScore++;
+        resetBall();
+    } else if (ball.x > canvas.width && !ball.resetting) {
+        ball.resetting = true;
+        leftPlayerScore++;
+        resetBall();
     }
 
-    // check to see if ball collides with paddle. if they do change x velocity
+    // Ball collision with paddles
     if (collides(ball, leftPaddle)) {
         ball.dx *= -1;
-
-        // move ball next to the paddle otherwise the collision will happen again
-        // in the next frame
         ball.x = leftPaddle.x + leftPaddle.width;
-    }
-    else if (collides(ball, rightPaddle)) {
+    } else if (collides(ball, rightPaddle)) {
         ball.dx *= -1;
-
-        // move ball next to the paddle otherwise the collision will happen again
-        // in the next frame
         ball.x = rightPaddle.x - ball.width;
     }
 
-    // draw ball
-    context.fillRect(ball.x, ball.y, ball.width, ball.height);
+    // Draw ball
+    //context.fillRect(ball.x, ball.y, ball.width, ball.height);
+    // Draw the ball trail
+    drawBallTrail();
 
-    // draw walls
+    // Draw the current ball
+    drawBall();
+
+    // Draw walls
     context.fillStyle = 'lightgrey';
     context.fillRect(0, 0, canvas.width, grid);
-    context.fillRect(0, canvas.height - grid, canvas.width, canvas.height);
+    context.fillRect(0, canvas.height - grid, canvas.width, grid);
 
-    // draw dotted line down the middle
+    // Draw dotted line down the middle
     for (let i = grid; i < canvas.height - grid; i += grid * 2) {
         context.fillRect(canvas.width / 2 - grid / 2, i, grid, grid);
     }
+
+    // Draw scores
+    // context.fillStyle = 'white';
+    // context.font = '30px Arial';
+    // context.fillText(leftPlayerScore, canvas.width / 4, 50);
+    // context.fillText(rightPlayerScore, (canvas.width * 3) / 4, 50);
+    drawScores();
+
 }
 
-// listen to keyboard events to move the paddles
-document.addEventListener('keydown', function(e) {
+// Array to store ball trail positions
+const ballTrail = [];
+const maxTrailLength = 10; // Number of trail balls before they disappear
 
-    // up arrow key
-    if (e.which === 38) {
-        rightPaddle.dy = -paddleSpeed;
+// Function to draw the ball with a trailing effect
+function drawBallTrail() {
+    // Add the current ball position to the trail
+    ballTrail.push({ x: ball.x, y: ball.y });
+
+    // Limit the length of the trail
+    if (ballTrail.length > maxTrailLength) {
+        ballTrail.shift(); // Remove the oldest position if the trail is too long
     }
-    // down arrow key
-    else if (e.which === 40) {
+
+    // Draw each position in the trail with progressively decreasing opacity
+    for (let i = 0; i < ballTrail.length; i++) {
+        const opacity = (i / maxTrailLength); // Calculate opacity based on position in the trail
+        context.fillStyle = `rgba(255, 255, 255, ${opacity})`; // White color with varying opacity
+        const trailBall = ballTrail[i];
+        context.beginPath();
+        context.arc(trailBall.x + ball.width / 2, trailBall.y + ball.height / 2, ball.width / 2, 0, Math.PI * 2);
+        context.fill();
+    }
+}
+
+// Function to draw the ball itself
+function drawBall() {
+    context.fillStyle = 'white';
+    context.fillRect(ball.x, ball.y, ball.width, ball.height);
+}
+
+// Function to create a rainbow gradient for the score
+function getRainbowGradient(context, x, y, width) {
+    const gradient = context.createLinearGradient(x, y, x + width, y);
+    gradient.addColorStop(0, 'red');
+    gradient.addColorStop(0.16, 'orange');
+    gradient.addColorStop(0.33, 'yellow');
+    gradient.addColorStop(0.5, 'green');
+    gradient.addColorStop(0.66, 'lightblue');
+    gradient.addColorStop(0.83, 'indigo');
+    gradient.addColorStop(1, 'violet');
+    return gradient;
+}
+
+// Draw scores with rainbow effect if score > 10
+function drawScores() {
+    context.font = '30px Arial';
+
+    // Left player score
+    if (leftPlayerScore > 10) {
+        context.fillStyle = getRainbowGradient(context, canvas.width / 4, 0, 50);
+    } else {
+        context.fillStyle = 'white';
+    }
+    context.fillText(leftPlayerScore, canvas.width / 4, 50);
+
+    // Right player score
+    if (rightPlayerScore > 10) {
+        context.fillStyle = getRainbowGradient(context, (canvas.width * 3) / 4, 0, 50);
+    } else {
+        context.fillStyle = 'white';
+    }
+    context.fillText(rightPlayerScore, (canvas.width * 3) / 4, 50);
+}
+
+function resetBall() {
+    setTimeout(() => {
+        ball.resetting = false;
+        ball.x = canvas.width / 2;
+        ball.y = canvas.height / 2;
+        ball.dx = ballSpeed * (Math.random() < 0.5 ? 1 : -1); // Randomize initial direction
+        ball.dy = ballSpeed * (Math.random() < 0.5 ? 1 : -1);
+    }, 400);
+}
+
+// Listen to keyboard events to move the paddles
+document.addEventListener('keydown', function (e) {
+    if (e.which === 38) { // Up arrow key
+        rightPaddle.dy = -paddleSpeed;
+    } else if (e.which === 40) { // Down arrow key
         rightPaddle.dy = paddleSpeed;
     }
-
-    // w key
-    if (e.which === 87) {
+    if (e.which === 87) { // 'W' key
         leftPaddle.dy = -paddleSpeed;
-    }
-    // a key
-    else if (e.which === 83) {
+    } else if (e.which === 83) { // 'S' key
         leftPaddle.dy = paddleSpeed;
     }
 });
 
-// listen to keyboard events to stop the paddle if key is released
-document.addEventListener('keyup', function(e) {
+// Stop the paddles when the key is released
+document.addEventListener('keyup', function (e) {
     if (e.which === 38 || e.which === 40) {
         rightPaddle.dy = 0;
     }
-
-    if (e.which === 83 || e.which === 87) {
+    if (e.which === 87 || e.which === 83) {
         leftPaddle.dy = 0;
     }
 });
 
-// start the game
+// Start the game
 requestAnimationFrame(loop);
