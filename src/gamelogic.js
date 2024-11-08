@@ -5,10 +5,13 @@ const paddleHeight = grid * 5; // 80
 const maxPaddleY = canvas.height - grid - paddleHeight;
 const R_max = 0.1763;
 const R_min = -0.1763;
-const speedmod_large = 0.1
-const speedmod_small = 0.05
-
+const speedmod_large = 0.1;
+const speedmod_small = 0.05;
+// Array to store ball trail positions
+const ballTrail = [];
+const maxTrailLength = 10; // Number of trail balls before they disappear
 const paddleSpeed = 6;
+
 let ballSpeed = 2;
 let theta_in;
 let theta_out;
@@ -36,14 +39,19 @@ const rightPaddle = {
     height: paddleHeight,
     dy: 0 // paddle velocity
 };
+
+const degree_init = 45;
+const theta_init = degree_init * (Math.PI / 180);
+const R_init = 1 / Math.tan((theta_init));
+
 const ball = {
     x: canvas.width / 2,
     y: canvas.height / 2,
     width: grid,
     height: grid,
     resetting: false,
-    dx: ballSpeed,
-    dy: -ballSpeed
+    dx: (R_init*ballSpeed)/Math.sqrt(R_init*R_init+1) * (Math.random() < 0.5 ? 1 : -1),
+    dy: (ballSpeed)/Math.sqrt(R_init*R_init+1) * (Math.random() < 0.5 ? 1 : -1)
 };
 
 function collides(obj1, obj2) {
@@ -58,7 +66,7 @@ function bounceback(isleft, anglechange){
     theta_out = Math.abs(theta_in) + anglechange;
 
     R = 1 / Math.tan((theta_out));
-    if(theta_out < 1.3962634){
+    if(theta_out <= 1.3962634 && theta_out >= 0){
         ballSpeed *= 1 + speedmod_large;
         ball.dx = Math.abs((R*ballSpeed)/Math.sqrt(R*R+1));
         ball.dy = Math.abs((ballSpeed)/Math.sqrt(R*R+1));
@@ -115,6 +123,7 @@ function loop() {
 
     // Draw paddles
     context.fillStyle = 'white';
+
     context.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
     context.fillRect(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height);
 
@@ -141,10 +150,14 @@ function loop() {
 
     // Ball collision with paddles
     if (collides(ball, leftPaddle)) {
-        bounceback(true, 0.20943951);
+        fromThebotton = Math.atan(ball.dy/ball.dx) < 0 ? true : false;
+        let angle_change = checkcollition_pos(ball, leftPaddle, !fromThebotton);
+        bounceback(true, angle_change);
         ball.x = leftPaddle.x + leftPaddle.width;
     } else if (collides(ball, rightPaddle)) {
-        bounceback(false, 0.20943951);
+        fromThebotton = Math.atan(ball.dy/ball.dx) < 0 ? false : true;
+        let angle_change = checkcollition_pos(ball, rightPaddle, !fromThebotton);
+        bounceback(false, angle_change);
         ball.x = rightPaddle.x - ball.width;
     }
 
@@ -175,9 +188,90 @@ function loop() {
 
 }
 
-// Array to store ball trail positions
-const ballTrail = [];
-const maxTrailLength = 10; // Number of trail balls before they disappear
+function test_draw_paddle_slices()
+{
+    context.fillStyle = 'red';
+
+    context.fillRect(leftPaddle.x, leftPaddle.y+leftPaddle.height/2, leftPaddle.width, 2);
+    context.fillRect(rightPaddle.x, rightPaddle.y+rightPaddle.height/2, rightPaddle.width, 2);
+
+    context.fillStyle = 'red';
+
+    context.fillRect(leftPaddle.x, leftPaddle.y+leftPaddle.height/2/3, leftPaddle.width, 2);
+    context.fillRect(rightPaddle.x, rightPaddle.y+rightPaddle.height/2/3, rightPaddle.width, 2);
+
+    context.fillStyle = 'red';
+
+    context.fillRect(leftPaddle.x, leftPaddle.y+leftPaddle.height/2/3*2, leftPaddle.width, 2);
+    context.fillRect(rightPaddle.x, rightPaddle.y+rightPaddle.height/2/3*2, rightPaddle.width, 2);
+
+    context.fillStyle = 'red';
+
+    context.fillRect(leftPaddle.x, leftPaddle.y+leftPaddle.height/2+leftPaddle.height/2/3, leftPaddle.width, 2);
+    context.fillRect(rightPaddle.x, rightPaddle.y+rightPaddle.height/2+rightPaddle.height/2/3, rightPaddle.width, 2);
+
+    context.fillStyle = 'red';
+
+    context.fillRect(leftPaddle.x, leftPaddle.y+leftPaddle.height/2+leftPaddle.height/2/3*2, leftPaddle.width, 2);
+    context.fillRect(rightPaddle.x, rightPaddle.y+rightPaddle.height/2+rightPaddle.height/2/3*2, rightPaddle.width, 2);
+}
+
+function test_ball_center(){
+    context.fillStyle = 'red';
+
+    context.fillRect(ball.x, ball.y + ball.height / 2, ball.width,2);
+}
+
+function checkcollition_pos(obj1, obj2, isFromBotton){
+    ball_center_y = obj1.y + (obj1.height/2);
+    //paddle_ball_distance = obj2.y + (obj2.height/2) - obj1.y + (obj1.height/2);
+    splitter = obj2.height/6;
+
+    if (ball_center_y < obj2.y + splitter){
+        return isFromBotton ? (8 * (Math.PI/180)) : (-8 * (Math.PI/180));
+    }
+    else if (ball_center_y < obj2.y + 2 * splitter){
+        return isFromBotton ? (4 * (Math.PI/180)) : (-4 * (Math.PI/180));
+    }
+    else if (ball_center_y < obj2.y + 3 * splitter){
+        return isFromBotton ? (2 * (Math.PI/180)) : (-2 * (Math.PI/180));
+    }
+    else if (ball_center_y < obj2.y + 4 * splitter){
+        return isFromBotton ? (-2 * (Math.PI/180)) : (2 * (Math.PI/180));
+    }
+    else if (ball_center_y < obj2.y + 5 * splitter){
+        return isFromBotton ? (-4 * (Math.PI/180)) : (4 * (Math.PI/180));
+    }
+    else if (ball_center_y > obj2.y + 5 * splitter){
+        return isFromBotton ? (-8 * (Math.PI/180)) : (8 * (Math.PI/180));
+    }
+    else{
+        return (0 * (Math.PI/180));
+    }
+
+
+    // if (paddle_ball_distance >= 0 && paddle_ball_distance < splitter){
+    //     return isFromBotton ? (2 * (Math.PI/180)) : (-2 * (Math.PI/180));
+    // }
+    // else if (paddle_ball_distance > splitter && paddle_ball_distance < (splitter * 2)){
+    //     return isFromBotton ? (4 * (Math.PI/180)) : (-4 * (Math.PI/180));
+    // }
+    // else if (paddle_ball_distance > (splitter * 2)){
+    //     return isFromBotton ? (8 * (Math.PI/180)) : (-8 * (Math.PI/180));
+    // }
+    // else if (paddle_ball_distance < 0 && paddle_ball_distance > (-splitter)){
+    //     return isFromBotton ? (-2 * (Math.PI/180)) : (2 * (Math.PI/180));
+    // }
+    // else if ((paddle_ball_distance < (-splitter)) && paddle_ball_distance > ((-splitter) * 2)){
+    //     return isFromBotton ? (-4 * (Math.PI/180)) : (4 * (Math.PI/180));
+    // }
+    // else if (paddle_ball_distance < ((-splitter) * 2)){
+    //     return isFromBotton ? (-8 * (Math.PI/180)) : (8 * (Math.PI/180));
+    // }
+    // else{
+    //     return (0 * (Math.PI/180));
+    // }
+}
 
 // Function to draw the ball with a trailing effect
 function drawBallTrail() {
@@ -208,7 +302,6 @@ function drawBall() {
     context.beginPath();
     context.arc(ball.x + ball.width / 2, ball.y + ball.height / 2, ball.width / 2, 0, Math.PI * 2);
     context.fill();
-    //console.log("ball angle: " + Math.atan(ball.dy/ball.dx) * (180/Math.PI));
 }
 
 // Function to create a rainbow gradient for the score
@@ -252,8 +345,14 @@ function resetBall() {
         ball.x = canvas.width / 2;
         ball.y = canvas.height / 2;
 
-        ball.dx = - ballSpeed;//0 * (Math.random() < 0.5 ? 1 : -1); // Randomize initial direction
-        ball.dy = -2* ballSpeed;// * (Math.random() < 0.5 ? 1 : -1);
+        theta_reset = Math.atan(ball.dy/ball.dx);
+
+        R = 1 / Math.tan((theta_reset));
+
+        ball.dx = (R*ballSpeed)/Math.sqrt(R*R+1);
+        ball.dy = (ballSpeed)/Math.sqrt(R*R+1);
+        //ball.dx = - ballSpeed;//0 * (Math.random() < 0.5 ? 1 : -1); // Randomize initial direction
+        //ball.dy = -2* ballSpeed;// * (Math.random() < 0.5 ? 1 : -1);
     }, 400);
 }
 
