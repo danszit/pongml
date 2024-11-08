@@ -3,9 +3,18 @@ const context = canvas.getContext('2d');
 const grid = 15;
 const paddleHeight = grid * 5; // 80
 const maxPaddleY = canvas.height - grid - paddleHeight;
+const R_max = 0.1763;
+const R_min = -0.1763;
+const speedmod_large = 0.1
+const speedmod_small = 0.05
 
-var paddleSpeed = 6;
-var ballSpeed = 5;
+const paddleSpeed = 6;
+let ballSpeed = 2;
+let theta_in;
+let theta_out;
+let R;
+let R_new;
+
 
 // Initialize player scores
 let leftPlayerScore = 0;
@@ -42,6 +51,28 @@ function collides(obj1, obj2) {
         obj1.x + obj1.width > obj2.x &&
         obj1.y < obj2.y + obj2.height &&
         obj1.y + obj1.height > obj2.y;
+}
+
+function bounceback(isleft, anglechange){
+    theta_in = Math.atan(ball.dy/ball.dx);
+    theta_out = theta_in + anglechange
+
+    R = 1 / Math.tan((theta_out));
+    if(true){
+        ballSpeed *= 1 + speedmod_large;
+        ball.dx = -1*((R*ballSpeed)/Math.sqrt(R*R+1));
+        ball.dy = (ballSpeed)/Math.sqrt(R*R+1);
+    }
+    else{
+        R = 1/Math.tan(theta_in);
+        ballSpeed *= 1 + speedmod_large;
+        ball.dx = -1*((R*ballSpeed)/Math.sqrt(R*R+1));
+        ball.dy = (ballSpeed)/Math.sqrt(R*R+1);
+    }
+    console.log("theta in: " + theta_in * (180/Math.PI));
+    console.log("theta out: " + Math.atan(ball.dy/ball.dx) * (180/Math.PI) + " theta_out: " + theta_out * (180/Math.PI));
+    console.log("angle: " + anglechange*(180/Math.PI));
+    console.log("ball speed: " + ballSpeed);
 }
 
 // Main game loop
@@ -85,10 +116,10 @@ function loop() {
 
     // Ball collision with paddles
     if (collides(ball, leftPaddle)) {
-        ball.dx *= -1;
+        bounceback(true, 0.20943951);
         ball.x = leftPaddle.x + leftPaddle.width;
     } else if (collides(ball, rightPaddle)) {
-        ball.dx *= -1;
+        bounceback(false, 0.20943951);
         ball.x = rightPaddle.x - ball.width;
     }
 
@@ -148,6 +179,7 @@ function drawBallTrail() {
 function drawBall() {
     context.fillStyle = 'white';
     context.fillRect(ball.x, ball.y, ball.width, ball.height);
+    console.log("ball angle: " + Math.atan(ball.dy/ball.dx) * (180/Math.PI));
 }
 
 // Function to create a rainbow gradient for the score
@@ -186,11 +218,13 @@ function drawScores() {
 
 function resetBall() {
     setTimeout(() => {
+        ballSpeed = 2;
         ball.resetting = false;
         ball.x = canvas.width / 2;
         ball.y = canvas.height / 2;
-        ball.dx = ballSpeed * (Math.random() < 0.5 ? 1 : -1); // Randomize initial direction
-        ball.dy = ballSpeed * (Math.random() < 0.5 ? 1 : -1);
+
+        ball.dx = - ballSpeed;//0 * (Math.random() < 0.5 ? 1 : -1); // Randomize initial direction
+        ball.dy = -2* ballSpeed;// * (Math.random() < 0.5 ? 1 : -1);
     }, 400);
 }
 
