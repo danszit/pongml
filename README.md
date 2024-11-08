@@ -28,5 +28,3 @@ This implementation opens pathways for further exploration, including:
 - Experimenting with deep Q-networks (DQN) to scale learning capabilities.
 
 In summary, this AI-driven Pong game exemplifies how Q-Learning can transform traditional gameplay into an arena for sophisticated machine learning experiments, underscoring the power of reinforcement learning in developing responsive and intelligent systems.
-
-Let me know if any part of this overview needs adjustments or further details!
