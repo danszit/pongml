@@ -150,13 +150,13 @@ function loop() {
 
     // Ball collision with paddles
     if (collides(ball, leftPaddle)) {
-        fromThebotton = Math.atan(ball.dy/ball.dx) < 0 ? true : false;
-        let angle_change = checkcollition_pos(ball, leftPaddle, !fromThebotton);
+        fromThebotton = Math.atan(ball.dy/ball.dx) > 0 ? true : false;
+        let angle_change = checkcollition_pos(ball, leftPaddle, fromThebotton);
         bounceback(true, angle_change);
         ball.x = leftPaddle.x + leftPaddle.width;
     } else if (collides(ball, rightPaddle)) {
-        fromThebotton = Math.atan(ball.dy/ball.dx) < 0 ? false : true;
-        let angle_change = checkcollition_pos(ball, rightPaddle, !fromThebotton);
+        fromThebotton = Math.atan(ball.dy/ball.dx) < 0 ? true : false;
+        let angle_change = checkcollition_pos(ball, rightPaddle, fromThebotton);
         bounceback(false, angle_change);
         ball.x = rightPaddle.x - ball.width;
     }
