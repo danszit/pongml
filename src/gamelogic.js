@@ -55,24 +55,49 @@ function collides(obj1, obj2) {
 
 function bounceback(isleft, anglechange){
     theta_in = Math.atan(ball.dy/ball.dx);
-    theta_out = theta_in + anglechange
+    theta_out = Math.abs(theta_in) + anglechange;
 
     R = 1 / Math.tan((theta_out));
-    if(true){
+    if(theta_out < 1.3962634){
         ballSpeed *= 1 + speedmod_large;
-        ball.dx = -1*((R*ballSpeed)/Math.sqrt(R*R+1));
-        ball.dy = (ballSpeed)/Math.sqrt(R*R+1);
+        ball.dx = Math.abs((R*ballSpeed)/Math.sqrt(R*R+1));
+        ball.dy = Math.abs((ballSpeed)/Math.sqrt(R*R+1));
+        direction_check(isleft);
     }
     else{
-        R = 1/Math.tan(theta_in);
+        R = 1/Math.tan(-theta_in);
         ballSpeed *= 1 + speedmod_large;
-        ball.dx = -1*((R*ballSpeed)/Math.sqrt(R*R+1));
-        ball.dy = (ballSpeed)/Math.sqrt(R*R+1);
+        ball.dx = Math.abs(R*ballSpeed)/Math.sqrt(R*R+1);
+        ball.dy = Math.abs(ballSpeed)/Math.sqrt(R*R+1);
+        direction_check(isleft);
     }
     console.log("theta in: " + theta_in * (180/Math.PI));
-    console.log("theta out: " + Math.atan(ball.dy/ball.dx) * (180/Math.PI) + " theta_out: " + theta_out * (180/Math.PI));
+    console.log("theta out: " + Math.atan(ball.dy/ball.dx) * (180/Math.PI));
     console.log("angle: " + anglechange*(180/Math.PI));
     console.log("ball speed: " + ballSpeed);
+}
+
+function direction_check(isleft){
+    if(isleft){
+        if(theta_in < 0){
+            ball.dx = ball.dx;
+            ball.dy = ball.dy;
+        }
+        else{
+            ball.dx = ball.dx;
+            ball.dy = -ball.dy;
+        }
+    }
+    else{
+        if(theta_in < 0){
+            ball.dx = -ball.dx;
+            ball.dy = -ball.dy;
+        }
+        else{
+            ball.dx = -ball.dx;
+            ball.dy = ball.dy;
+        }
+    }
 }
 
 // Main game loop
@@ -126,7 +151,7 @@ function loop() {
     // Draw ball
     //context.fillRect(ball.x, ball.y, ball.width, ball.height);
     // Draw the ball trail
-    drawBallTrail();
+    //drawBallTrail();
 
     // Draw the current ball
     drawBall();
@@ -177,9 +202,13 @@ function drawBallTrail() {
 
 // Function to draw the ball itself
 function drawBall() {
+    // context.fillStyle = 'white';
+    // context.fillRect(ball.x, ball.y, ball.width, ball.height);
     context.fillStyle = 'white';
-    context.fillRect(ball.x, ball.y, ball.width, ball.height);
-    console.log("ball angle: " + Math.atan(ball.dy/ball.dx) * (180/Math.PI));
+    context.beginPath();
+    context.arc(ball.x + ball.width / 2, ball.y + ball.height / 2, ball.width / 2, 0, Math.PI * 2);
+    context.fill();
+    //console.log("ball angle: " + Math.atan(ball.dy/ball.dx) * (180/Math.PI));
 }
 
 // Function to create a rainbow gradient for the score
