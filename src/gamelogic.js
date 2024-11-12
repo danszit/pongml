@@ -11,6 +11,7 @@ const speedmod_small = 0.05;
 const ballTrail = [];
 const maxTrailLength = 10; // Number of trail balls before they disappear
 const paddleSpeed = 6;
+const playAgainstAI = false;
 
 let ballSpeed = 2;
 let theta_in;
@@ -53,6 +54,21 @@ const ball = {
     dx: (R_init*ballSpeed)/Math.sqrt(R_init*R_init+1) * (Math.random() < 0.5 ? 1 : -1),
     dy: (ballSpeed)/Math.sqrt(R_init*R_init+1) * (Math.random() < 0.5 ? 1 : -1)
 };
+
+function controlLeftPaddle() {
+    const paddleCenter = leftPaddle.y + leftPaddle.height / 2;
+    
+    // Move the paddle only if the ball is on the left half of the screen
+    if (ball.x < canvas.width / 2) {
+        if (ball.y < paddleCenter) {
+            leftPaddle.dy = -paddleSpeed; // Move up
+        } else if (ball.y > paddleCenter) {
+            leftPaddle.dy = paddleSpeed; // Move down
+        }
+    } else {
+        leftPaddle.dy = 0; // Stop moving when ball is on the right half
+    }
+}
 
 function collides(obj1, obj2) {
     return obj1.x < obj2.x + obj2.width &&
@@ -112,6 +128,11 @@ function direction_check(isleft){
 function loop() {
     requestAnimationFrame(loop);
     context.clearRect(0, 0, canvas.width, canvas.height);
+
+    if(playAgainstAI)
+    {
+        controlLeftPaddle();
+    }
 
     // Move paddles by their velocity
     leftPaddle.y += leftPaddle.dy;
@@ -363,10 +384,13 @@ document.addEventListener('keydown', function (e) {
     } else if (e.which === 40) { // Down arrow key
         rightPaddle.dy = paddleSpeed;
     }
-    if (e.which === 87) { // 'W' key
-        leftPaddle.dy = -paddleSpeed;
-    } else if (e.which === 83) { // 'S' key
-        leftPaddle.dy = paddleSpeed;
+    if(!playAgainstAI)
+    {
+        if (e.which === 87) { // 'W' key
+            leftPaddle.dy = -paddleSpeed;
+        } else if (e.which === 83) { // 'S' key
+            leftPaddle.dy = paddleSpeed;
+        }
     }
 });
 
@@ -375,8 +399,11 @@ document.addEventListener('keyup', function (e) {
     if (e.which === 38 || e.which === 40) {
         rightPaddle.dy = 0;
     }
-    if (e.which === 87 || e.which === 83) {
-        leftPaddle.dy = 0;
+    if(!playAgainstAI)
+    {
+        if (e.which === 87 || e.which === 83) {
+            leftPaddle.dy = 0;
+        }
     }
 });
 
